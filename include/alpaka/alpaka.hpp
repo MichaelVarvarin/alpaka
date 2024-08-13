@@ -33,10 +33,6 @@
 #include "alpaka/atomic/AtomicUniformCudaHipBuiltIn.hpp"
 #include "alpaka/atomic/Op.hpp"
 #include "alpaka/atomic/Traits.hpp"
-// grid
-#include "alpaka/grid/GridSyncGpuCudaHip.hpp"
-#include "alpaka/grid/GridSyncNoOp.hpp"
-#include "alpaka/grid/Traits.hpp"
 // block
 // shared
 // dynamic
@@ -109,6 +105,10 @@
 #include "alpaka/exec/UniformElements.hpp"
 // extent
 #include "alpaka/extent/Traits.hpp"
+// grid
+#include "alpaka/grid/GridSyncGpuCudaHip.hpp"
+#include "alpaka/grid/GridSyncNoOp.hpp"
+#include "alpaka/grid/Traits.hpp"
 // idx
 #include "alpaka/idx/Accessors.hpp"
 #include "alpaka/idx/MapIdx.hpp"
