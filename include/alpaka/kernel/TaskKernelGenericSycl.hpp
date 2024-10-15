@@ -35,6 +35,8 @@
 #        pragma clang diagnostic ignored "-Wunused-parameter"
 #    endif
 
+#    include <sycl/ext/oneapi/experimental/root_group.hpp>
+#    include <sycl/ext/oneapi/properties/properties.hpp>
 #    include <sycl/sycl.hpp>
 
 #    define LAUNCH_SYCL_KERNEL_IF_SUBGROUP_SIZE_IS(sub_group_size)                                                    \
@@ -50,7 +52,7 @@
             });
 
 #    define LAUNCH_SYCL_KERNEL_WITH_DEFAULT_SUBGROUP_SIZE                                                             \
-        cgh.parallel_for(                                                                                             \
+        cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                     \
             sycl::nd_range<TDim::value>{global_size, local_size},                                                     \
             [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                                 \
                 sycl::nd_item<TDim::value> work_item)                                                                 \
@@ -70,6 +72,12 @@
 
 namespace alpaka
 {
+    namespace detail
+    {
+        template<typename TKernel>
+        class SyclKernel;
+    } // namespace detail
+
     //! The SYCL accelerator execution task.
     template<typename TTag, typename TAcc, typename TDim, typename TIdx, typename TKernelFnObj, typename... TArgs>
     class TaskKernelGenericSycl final : public WorkDivMembers<TDim, TIdx>
@@ -85,7 +93,7 @@ namespace alpaka
         {
         }
 
-        auto operator()(sycl::handler& cgh) const -> void
+        auto operator()(sycl::handler& cgh, sycl::queue const& queue) const -> void
         {
             auto const work_groups = WorkDivMembers<TDim, TIdx>::m_gridBlockExtent;
             auto const group_items = WorkDivMembers<TDim, TIdx>::m_blockThreadExtent;
@@ -115,6 +123,23 @@ namespace alpaka
 
             constexpr std::size_t sub_group_size = trait::warpSize<TKernelFnObj, TAcc>;
             bool supported = false;
+
+            sycl::kernel_bundle bundle = sycl::get_kernel_bundle<sycl::bundle_state::executable>(queue.get_context());
+            auto kernelIDs = bundle.get_kernel_ids();
+            for(auto kernelID : kernelIDs)
+            {
+                printf("%s\n", kernelID.get_name());
+                auto kernel = bundle.get_kernel(kernelID);
+                auto maxWGs = kernel.ext_oneapi_get_info<
+                    sycl::ext::oneapi::experimental::info::kernel_queue_specific::max_num_work_group_sync>(queue);
+                printf("MaxWGs: %zu\n", maxWGs);
+            }
+
+            sycl::kernel kernel = bundle.get_kernel<class detail::SyclKernel<TKernelFnObj>>();
+            auto maxWGs = kernel.ext_oneapi_get_info<
+                sycl::ext::oneapi::experimental::info::kernel_queue_specific::max_num_work_group_sync>(queue);
+            printf("Max WGs from get_kernel: %i.\n", maxWGs);
+
 
             if constexpr(sub_group_size == 0)
             {

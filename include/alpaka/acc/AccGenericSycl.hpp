@@ -11,6 +11,7 @@
 #include "alpaka/block/shared/st/BlockSharedMemStGenericSycl.hpp"
 #include "alpaka/block/sync/BlockSyncGenericSycl.hpp"
 #include "alpaka/dev/DevGenericSycl.hpp"
+#include "alpaka/grid/GridSyncGenericSycl.hpp"
 #include "alpaka/idx/bt/IdxBtGenericSycl.hpp"
 #include "alpaka/idx/gb/IdxGbGenericSycl.hpp"
 #include "alpaka/intrinsic/IntrinsicGenericSycl.hpp"
@@ -62,6 +63,7 @@ namespace alpaka
         , public BlockSharedMemDynGenericSycl
         , public BlockSharedMemStGenericSycl
         , public BlockSyncGenericSycl<TDim>
+        , public GridSyncGenericSycl<TDim>
         , public IntrinsicGenericSycl
         , public MemFenceGenericSycl
 #    ifdef ALPAKA_DISABLE_VENDOR_RNG
@@ -91,6 +93,7 @@ namespace alpaka
             , BlockSharedMemDynGenericSycl{dyn_shared_acc}
             , BlockSharedMemStGenericSycl{st_shared_acc}
             , BlockSyncGenericSycl<TDim>{work_item}
+            , GridSyncGenericSycl<TDim>{work_item}
 #    ifndef ALPAKA_DISABLE_VENDOR_RNG
             , rand::RandGenericSycl<TDim>{work_item}
 #    endif
