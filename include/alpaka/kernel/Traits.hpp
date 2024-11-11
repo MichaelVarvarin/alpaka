@@ -404,7 +404,7 @@ namespace alpaka
     template<typename T>
     inline constexpr bool isKernelTriviallyCopyable = IsKernelTriviallyCopyable<T>::value;
 
-    //! @}
+//! @}
 
 #if BOOST_COMP_CLANG
 #    pragma clang diagnostic push
