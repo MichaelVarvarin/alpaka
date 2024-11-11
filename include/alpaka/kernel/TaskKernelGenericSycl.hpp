@@ -40,46 +40,97 @@
 #    include <sycl/sycl.hpp>
 
 #    define LAUNCH_SYCL_KERNEL_IF_SUBGROUP_SIZE_IS(sub_group_size)                                                    \
-        cgh.parallel_for(                                                                                             \
-            sycl::nd_range<TDim::value>{global_size, local_size},                                                     \
-            [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                                 \
-                sycl::nd_item<TDim::value> work_item) [[intel::reqd_sub_group_size(sub_group_size)]]                  \
-            {                                                                                                         \
-                auto acc = TAcc{item_elements, work_item, dyn_shared_accessor, st_shared_accessor};                   \
-                std::apply(                                                                                           \
-                    [k_func, &acc](typename std::decay_t<TArgs> const&... args) { k_func(acc, args...); },            \
-                    k_args);                                                                                          \
-            });
+        if constexpr(TCooperative)                                                                                    \
+        {                                                                                                             \
+            cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                 \
+                sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
+                [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
+                    sycl::nd_item<TDim::value> work_item) [[intel::reqd_sub_group_size(sub_group_size)]]              \
+                {                                                                                                     \
+                    auto acc = TAcc{item_elements, work_item, dyn_shared_accessor, st_shared_accessor};               \
+                    std::apply(                                                                                       \
+                        [k_func, &acc](typename std::decay_t<TArgs> const&... args) { k_func(acc, args...); },        \
+                        k_args);                                                                                      \
+                });                                                                                                   \
+        }                                                                                                             \
+        else                                                                                                          \
+        {                                                                                                             \
+            cgh.parallel_for(                                                                                         \
+                sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
+                [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
+                    sycl::nd_item<TDim::value> work_item) [[intel::reqd_sub_group_size(sub_group_size)]]              \
+                {                                                                                                     \
+                    auto acc = TAcc{item_elements, work_item, dyn_shared_accessor, st_shared_accessor};               \
+                    std::apply(                                                                                       \
+                        [k_func, &acc](typename std::decay_t<TArgs> const&... args) { k_func(acc, args...); },        \
+                        k_args);                                                                                      \
+                });                                                                                                   \
+        }
 
 #    define LAUNCH_SYCL_KERNEL_WITH_DEFAULT_SUBGROUP_SIZE                                                             \
-        cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                     \
-            sycl::nd_range<TDim::value>{global_size, local_size},                                                     \
-            [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                                 \
-                sycl::nd_item<TDim::value> work_item)                                                                 \
-            {                                                                                                         \
-                auto acc = TAcc{item_elements, work_item, dyn_shared_accessor, st_shared_accessor};                   \
-                std::apply(                                                                                           \
-                    [k_func, &acc](typename std::decay_t<TArgs> const&... args) { k_func(acc, args...); },            \
-                    k_args);                                                                                          \
-            });
+        if constexpr(TCooperative)                                                                                    \
+        {                                                                                                             \
+            cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                 \
+                sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
+                [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
+                    sycl::nd_item<TDim::value> work_item)                                                             \
+                {                                                                                                     \
+                    auto acc = TAcc{item_elements, work_item, dyn_shared_accessor, st_shared_accessor};               \
+                    std::apply(                                                                                       \
+                        [k_func, &acc](typename std::decay_t<TArgs> const&... args) { k_func(acc, args...); },        \
+                        k_args);                                                                                      \
+                });                                                                                                   \
+        }                                                                                                             \
+        else                                                                                                          \
+        {                                                                                                             \
+            cgh.parallel_for(                                                                                         \
+                sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
+                [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
+                    sycl::nd_item<TDim::value> work_item)                                                             \
+                {                                                                                                     \
+                    auto acc = TAcc{item_elements, work_item, dyn_shared_accessor, st_shared_accessor};               \
+                    std::apply(                                                                                       \
+                        [k_func, &acc](typename std::decay_t<TArgs> const&... args) { k_func(acc, args...); },        \
+                        k_args);                                                                                      \
+                });                                                                                                   \
+        }
+
 
 #    define THROW_AND_LAUNCH_EMPTY_SYCL_KERNEL                                                                        \
         throw sycl::exception(sycl::make_error_code(sycl::errc::kernel_not_supported));                               \
-        cgh.parallel_for(                                                                                             \
-            sycl::nd_range<TDim::value>{global_size, local_size},                                                     \
-            [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                                 \
-                sycl::nd_item<TDim::value> work_item) {});
+        if constexpr(TCooperative)                                                                                    \
+        {                                                                                                             \
+            cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                 \
+                sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
+                [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
+                    sycl::nd_item<TDim::value> work_item) {});                                                        \
+        }                                                                                                             \
+        else                                                                                                          \
+        {                                                                                                             \
+            cgh.parallel_for(                                                                                         \
+                sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
+                [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
+                    sycl::nd_item<TDim::value> work_item) {});                                                        \
+        }
 
 namespace alpaka
 {
     namespace detail
     {
+        // dummy class to pass as a template parameter when launching cooperative kernels
         template<typename TKernel>
         class SyclKernel;
     } // namespace detail
 
     //! The SYCL accelerator execution task.
-    template<typename TTag, typename TAcc, typename TDim, typename TIdx, typename TKernelFnObj, typename... TArgs>
+    template<
+        typename TTag,
+        typename TAcc,
+        typename TDim,
+        typename TIdx,
+        typename TKernelFnObj,
+        bool TCooperative,
+        typename... TArgs>
     class TaskKernelGenericSycl final : public WorkDivMembers<TDim, TIdx>
     {
     public:
@@ -124,21 +175,28 @@ namespace alpaka
             constexpr std::size_t sub_group_size = trait::warpSize<TKernelFnObj, TAcc>;
             bool supported = false;
 
-            sycl::kernel_bundle bundle = sycl::get_kernel_bundle<sycl::bundle_state::executable>(queue.get_context());
-            auto kernelIDs = bundle.get_kernel_ids();
-            for(auto kernelID : kernelIDs)
+#    if ALPAKA_DEBUG >= ALPAKA_DEBUG_MINIMAL
+            if constexpr(TCooperative)
             {
-                printf("%s\n", kernelID.get_name());
-                auto kernel = bundle.get_kernel(kernelID);
-                auto maxWGs = kernel.ext_oneapi_get_info<
+                sycl::kernel_bundle bundle
+                    = sycl::get_kernel_bundle<sycl::bundle_state::executable>(queue.get_context());
+                sycl::kernel kernel = bundle.get_kernel<class detail::SyclKernel<TKernelFnObj>>();
+                size_t maxWGs = kernel.ext_oneapi_get_info<
                     sycl::ext::oneapi::experimental::info::kernel_queue_specific::max_num_work_group_sync>(queue);
-                printf("MaxWGs: %zu\n", maxWGs);
+                if(work_groups.prod() > maxWGs)
+                {
+                    throw std::runtime_error(
+                        "The number of requested blocks is larger than maximuma of the device for the kernel "
+                        + core::demangled<TKernelFnObj>
+                        + "! Device: " + getAccName<TAcc>() + ", requested: " + std::to_string(work_groups.prod())
+                        + ", maximum allowed: " + std::to_string(maxWGs) + ". Use getMaxActiveBlocks().");
+                }
+#        if ALPAKA_DEBUG >= ALPAKA_DEBUG_FULL
+                std::cout << "maxBlocksPerGrid for the " << core::demangled<TKernelFnObj> << ": " << maxWGs
+                          << std::endl;
+#        endif
             }
-
-            sycl::kernel kernel = bundle.get_kernel<class detail::SyclKernel<TKernelFnObj>>();
-            auto maxWGs = kernel.ext_oneapi_get_info<
-                sycl::ext::oneapi::experimental::info::kernel_queue_specific::max_num_work_group_sync>(queue);
-            printf("Max WGs from get_kernel: %i.\n", maxWGs);
+#    endif
 
 
             if constexpr(sub_group_size == 0)
@@ -330,6 +388,31 @@ namespace alpaka::trait
             auto const& props = alpaka::getAccDevProps<AccGenericSycl<TTag, TDim, TIdx>>(dev);
             kernelFunctionAttributes.maxThreadsPerBlock = static_cast<int>(props.m_blockThreadCountMax);
             return kernelFunctionAttributes;
+        }
+    };
+
+    //! The CUDA/HIP get max active blocks for cooperative kernel specialization.
+    template<typename TAcc, typename TKernelFnObj, typename TTag, typename TDim, typename TIdx, typename... TArgs>
+    struct MaxActiveBlocks<TAcc, DevGenericSycl<TTag>, TKernelFnObj, TDim, TIdx, TArgs...>
+    {
+        ALPAKA_FN_HOST static auto getMaxActiveBlocks(
+            TKernelFnObj const& /*kernelFnObj*/,
+            DevGenericSycl<TTag> const& device,
+            alpaka::Vec<TDim, TIdx> const& /*blockThreadExtent*/,
+            alpaka::Vec<TDim, TIdx> const& /*threadElemExtent*/,
+            TArgs const&... /*args*/) -> int
+        {
+            sycl::queue queue{
+                std::move(device.getNativeHandle()
+                              .second), // This is important. In SYCL a device can belong to multiple contexts.
+                std::move(device.getNativeHandle().first),
+                {sycl::property::queue::enable_profiling{}, sycl::property::queue::in_order{}}};
+
+            sycl::kernel_bundle bundle = sycl::get_kernel_bundle<sycl::bundle_state::executable>(queue.get_context());
+            sycl::kernel kernel = bundle.get_kernel<class detail::SyclKernel<TKernelFnObj>>();
+            size_t maxWGs = kernel.ext_oneapi_get_info<
+                sycl::ext::oneapi::experimental::info::kernel_queue_specific::max_num_work_group_sync>(queue);
+            return static_cast<int>(maxWGs);
         }
     };
 } // namespace alpaka::trait

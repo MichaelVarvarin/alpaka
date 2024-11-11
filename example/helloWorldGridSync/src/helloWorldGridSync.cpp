@@ -102,7 +102,8 @@ auto main() -> int
     // Only cooperative kernels can perform grid synchronization.
     auto taskRunKernel = alpaka::createTaskKernel<Acc>(workDiv, helloWorldKernel, getPtrNative(deviceMemory));
 
-    auto taskRunKernel2 = alpaka::createTaskKernel<Acc>(workDiv2, helloWorldKernel, getPtrNative(deviceMemory2));
+    auto taskRunKernel2
+        = alpaka::createTaskCooperativeKernel<Acc>(workDiv2, helloWorldKernel, getPtrNative(deviceMemory2));
 
     // Enqueue the kernel execution task..
     alpaka::enqueue(queue, taskRunKernel);
