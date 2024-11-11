@@ -47,7 +47,7 @@
 
 namespace alpaka
 {
-    template<typename TTag, typename TAcc, typename TDim, typename TIdx, typename TKernelFnObj, typename... TArgs>
+    template<typename TTag, typename TAcc, typename TDim, typename TIdx, typename TKernelFnObj, bool TCooperative, typename... TArgs>
     class TaskKernelGenericSycl;
 
     //! The SYCL accelerator.
@@ -194,7 +194,20 @@ namespace alpaka::trait
     {
         static auto createTaskKernel(TWorkDiv const& workDiv, TKernelFnObj const& kernelFnObj, TArgs&&... args)
         {
-            return TaskKernelGenericSycl<TTag, AccGenericSycl<TTag, TDim, TIdx>, TDim, TIdx, TKernelFnObj, TArgs...>{
+            return TaskKernelGenericSycl<TTag, AccGenericSycl<TTag, TDim, TIdx>, TDim, TIdx, TKernelFnObj, false, TArgs...>{
+                workDiv,
+                kernelFnObj,
+                std::forward<TArgs>(args)...};
+        }
+    };
+
+    //! The SYCL accelerator execution task type trait specialization.
+    template<typename TTag, typename TDim, typename TIdx, typename TWorkDiv, typename TKernelFnObj, typename... TArgs>
+    struct CreateTaskCooperativeKernel<AccGenericSycl<TTag, TDim, TIdx>, TWorkDiv, TKernelFnObj, TArgs...>
+    {
+        static auto createTaskCooperativeKernel(TWorkDiv const& workDiv, TKernelFnObj const& kernelFnObj, TArgs&&... args)
+        {
+            return TaskKernelGenericSycl<TTag, AccGenericSycl<TTag, TDim, TIdx>, TDim, TIdx, TKernelFnObj, true, TArgs...>{
                 workDiv,
                 kernelFnObj,
                 std::forward<TArgs>(args)...};
