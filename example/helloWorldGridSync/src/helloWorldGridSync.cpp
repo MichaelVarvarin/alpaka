@@ -20,7 +20,8 @@ struct HelloWorldKernel
         uint32_t gridThreadIdx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
         uint32_t gridThreadExtent = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0];
 
-        printf("Hello, World from alpaka thread %u!\n", gridThreadIdx);
+        if(gridThreadIdx == 0)
+            printf("Hello, World from alpaka thread %u!\n", gridThreadIdx);
 
         // Write the index of the thread to array.
         data[gridThreadIdx] = gridThreadIdx;
@@ -38,13 +39,15 @@ struct HelloWorldKernel
         uint32_t expectedSum = gridThreadExtent - 1;
 
         // Print the result and signify an error if the grid synchronization fails.
-        printf(
-            "After grid sync, this thread is %u, thread on the opposite side is %u. Their sum is %u, expected: %u.%s",
-            gridThreadIdx,
-            gridThreadIdxOpposite,
-            sum,
-            expectedSum,
-            sum == expectedSum ? "\n" : " ERROR: the sum is incorrect.\n");
+        if(sum != expectedSum)
+            printf(
+                "After grid sync, this thread is %u, thread on the opposite side is %u. Their sum is %u, expected: "
+                "%u.%s",
+                gridThreadIdx,
+                gridThreadIdxOpposite,
+                sum,
+                expectedSum,
+                sum == expectedSum ? "\n" : " ERROR: the sum is incorrect.\n");
     }
 };
 
@@ -55,7 +58,7 @@ auto main() -> int
     using Idx = uint32_t;
 
     // Define alpaka accelerator type, which corresponds to the underlying programming model
-    using Acc = alpaka::AccGpuCudaRt<Dim, Idx>;
+    using Acc = alpaka::AccGpuSyclIntel<Dim, Idx>;
 
     // Select the first device available on a system, for the chosen accelerator
     auto const platformAcc = alpaka::Platform<Acc>{};
@@ -70,33 +73,43 @@ auto main() -> int
     // threads per block, and elements per thread.
     Idx blocksPerGrid = 10;
     Idx threadsPerBlock = 1;
+    Idx threadsPerBlock2 = 1024;
     Idx elementsPerThread = 1;
 
     using WorkDiv = alpaka::WorkDivMembers<Dim, Idx>;
     auto workDiv = WorkDiv{blocksPerGrid, threadsPerBlock, elementsPerThread};
+    auto workDiv2 = WorkDiv{blocksPerGrid, threadsPerBlock2, elementsPerThread};
 
     // Allocate memory on the device.
     alpaka::Vec<Dim, Idx> bufferExtent{blocksPerGrid * threadsPerBlock};
     auto deviceMemory = alpaka::allocBuf<uint32_t, Idx>(devAcc, bufferExtent);
 
+    alpaka::Vec<Dim, Idx> bufferExtent2{blocksPerGrid * threadsPerBlock2};
+    auto deviceMemory2 = alpaka::allocBuf<uint32_t, Idx>(devAcc, bufferExtent2);
     // Instantiate the kernel object.
     HelloWorldKernel helloWorldKernel;
 
-    int maxBlocks = alpaka::getMaxActiveBlocks<Acc>(
-        devAcc,
-        helloWorldKernel,
-        threadsPerBlock,
-        elementsPerThread,
-        getPtrNative(deviceMemory));
-    std::cout << "Maximum blocks for the kernel: " << maxBlocks << std::endl;
+    // int maxBlocks = alpaka::getMaxActiveBlocks<Acc>(
+    //     devAcc,
+    //    helloWorldKernel,
+    //     threadsPerBlock,
+    //     elementsPerThread,
+    //     getPtrNative(deviceMemory));
+    // std::cout << "Maximum blocks for the kernel: " << maxBlocks << std::endl;
 
     // Create a task to run the kernel.
     // Note the cooperative kernel specification.
     // Only cooperative kernels can perform grid synchronization.
-    auto taskRunKernel
-        = alpaka::createTaskCooperativeKernel<Acc>(workDiv, helloWorldKernel, getPtrNative(deviceMemory));
+    auto taskRunKernel = alpaka::createTaskKernel<Acc>(workDiv, helloWorldKernel, getPtrNative(deviceMemory));
+
+    auto taskRunKernel2
+        = alpaka::createTaskCooperativeKernel<Acc>(workDiv2, helloWorldKernel, getPtrNative(deviceMemory2));
 
     // Enqueue the kernel execution task..
     alpaka::enqueue(queue, taskRunKernel);
+    alpaka::wait(queue);
+    printf("launching kernel 2\n");
+    alpaka::enqueue(queue, taskRunKernel2);
+
     return 0;
 }

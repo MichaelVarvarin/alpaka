@@ -735,7 +735,7 @@ if(alpaka_ACC_SYCL_ENABLE)
 
         #-----------------------------------------------------------------------------------------------------------------
         # Generic SYCL options
-        alpaka_set_compiler_options(DEVICE target alpaka "-fsycl-unnamed-lambda") # Compiler default but made explicit here
+    alpaka_set_compiler_options(DEVICE target alpaka "-fsycl-unnamed-lambda") # Compiler default but made explicit here
 
         if(alpaka_RELOCATABLE_DEVICE_CODE STREQUAL ON)
             alpaka_set_compiler_options(DEVICE target alpaka "-fsycl-rdc")
