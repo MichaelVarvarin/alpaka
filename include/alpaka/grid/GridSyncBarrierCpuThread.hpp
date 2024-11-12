@@ -5,7 +5,7 @@
 #pragma once
 
 #include "alpaka/core/BarrierThread.hpp"
-#include "alpaka/core/Concepts.hpp"
+#include "alpaka/core/Common.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #include <thread>
@@ -16,7 +16,7 @@ namespace alpaka
 {
     //! The thread id map barrier grid synchronization.
     template<typename TIdx>
-    class GridSyncBarrierThread : public concepts::Implements<ConceptGridSync, GridSyncBarrierThread<TIdx>>
+    class GridSyncBarrierThread : public interface::Implements<ConceptGridSync, GridSyncBarrierThread<TIdx>>
     {
     public:
         using Barrier = core::threads::BarrierThread<TIdx>;

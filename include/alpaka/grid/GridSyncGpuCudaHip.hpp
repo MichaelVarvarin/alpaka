@@ -5,7 +5,7 @@
 #pragma once
 
 #include "alpaka/core/BoostPredef.hpp"
-#include "alpaka/core/Concepts.hpp"
+#include "alpaka/core/Common.hpp"
 #include "alpaka/grid//Traits.hpp"
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) || defined(ALPAKA_ACC_GPU_HIP_ENABLED)
@@ -22,7 +22,7 @@
 namespace alpaka
 {
     //! The GPU CUDA/HIP grid synchronization.
-    class GridSyncCudaHipBuiltIn : public concepts::Implements<ConceptGridSync, GridSyncCudaHipBuiltIn>
+    class GridSyncCudaHipBuiltIn : public interface::Implements<ConceptGridSync, GridSyncCudaHipBuiltIn>
     {
     };
 

@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "alpaka/core/Concepts.hpp"
+#include "alpaka/core/Common.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 namespace alpaka
 {
     //! The NoOp grid synchronization for accelerators that only support a single thread with cooperative kernels.
-    class GridSyncNoOp : public concepts::Implements<ConceptGridSync, GridSyncNoOp>
+    class GridSyncNoOp : public interface::Implements<ConceptGridSync, GridSyncNoOp>
     {
     };
 

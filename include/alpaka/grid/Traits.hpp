@@ -5,7 +5,6 @@
 #pragma once
 
 #include "alpaka/core/Common.hpp"
-#include "alpaka/core/Concepts.hpp"
 
 namespace alpaka
 {
@@ -32,7 +31,7 @@ namespace alpaka
     template<typename TGridSync>
     ALPAKA_FN_ACC auto syncGridThreads(TGridSync const& gridSync) -> void
     {
-        using ImplementationBase = concepts::ImplementationBase<ConceptGridSync, TGridSync>;
+        using ImplementationBase = interface::ImplementationBase<ConceptGridSync, TGridSync>;
         trait::SyncGridThreads<ImplementationBase>::syncGridThreads(gridSync);
     }
 

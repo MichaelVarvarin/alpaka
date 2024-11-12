@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "alpaka/core/Concepts.hpp"
+#include "alpaka/core/Common.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #ifdef ALPAKA_ACC_SYCL_ENABLED
@@ -16,7 +16,7 @@ namespace alpaka
 {
     //! The grid synchronization for SYCL.
     template<typename TDim>
-    class GridSyncGenericSycl : public concepts::Implements<ConceptGridSync, GridSyncGenericSycl<TDim>>
+    class GridSyncGenericSycl : public interface::Implements<ConceptGridSync, GridSyncGenericSycl<TDim>>
     {
     public:
         GridSyncGenericSycl(sycl::nd_item<TDim::value> work_item) : my_item{work_item}

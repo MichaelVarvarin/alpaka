@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "alpaka/core/Concepts.hpp"
+#include "alpaka/core/Common.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #ifdef _OPENMP
@@ -12,7 +12,7 @@
 namespace alpaka
 {
     //! The grid synchronization for OMP accelerators.
-    class GridSyncOmp : public concepts::Implements<ConceptGridSync, GridSyncOmp>
+    class GridSyncOmp : public interface::Implements<ConceptGridSync, GridSyncOmp>
     {
     };
 
