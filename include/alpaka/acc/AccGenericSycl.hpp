@@ -166,7 +166,7 @@ namespace alpaka::trait
                     // m_globalMemSizeBytes
                     getMemBytes(dev),
                     // m_cooperativeLaunch
-                    false};
+                    true};
         }
     };
 
