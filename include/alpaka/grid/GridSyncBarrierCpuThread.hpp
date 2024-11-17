@@ -6,6 +6,7 @@
 
 #include "alpaka/core/BarrierThread.hpp"
 #include "alpaka/core/Common.hpp"
+#include "alpaka/core/Interface.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #include <thread>

@@ -6,6 +6,7 @@
 
 #include "alpaka/core/BoostPredef.hpp"
 #include "alpaka/core/Common.hpp"
+#include "alpaka/core/Interface.hpp"
 #include "alpaka/grid//Traits.hpp"
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) || defined(ALPAKA_ACC_GPU_HIP_ENABLED)

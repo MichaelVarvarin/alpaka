@@ -5,6 +5,7 @@
 #pragma once
 
 #include "alpaka/core/Common.hpp"
+#include "alpaka/core/Interface.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #ifdef ALPAKA_ACC_SYCL_ENABLED

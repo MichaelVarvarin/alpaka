@@ -6,6 +6,7 @@
 
 #include "alpaka/core/BarrierTbb.h"
 #include "alpaka/core/Common.hpp"
+#include "alpaka/core/Interface.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
