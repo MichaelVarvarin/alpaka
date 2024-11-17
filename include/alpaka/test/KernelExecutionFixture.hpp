@@ -22,7 +22,7 @@
 namespace alpaka::test
 {
     //! The fixture for executing a kernel on a given accelerator.
-    template<typename TAcc>
+    template<typename TAcc, bool TCooperative = false>
     class KernelExecutionFixture
     {
     public:
@@ -80,7 +80,15 @@ namespace alpaka::test
                     getPtrNative(bufAccResult),
                     std::forward<TArgs>(args)...);
 
-            exec<Acc>(m_queue, m_workDiv, kernelFnObj, getPtrNative(bufAccResult), std::forward<TArgs>(args)...);
+            if constexpr(TCooperative)
+                execCooperative<Acc>(
+                    m_queue,
+                    m_workDiv,
+                    kernelFnObj,
+                    getPtrNative(bufAccResult),
+                    std::forward<TArgs>(args)...);
+            else
+                exec<Acc>(m_queue, m_workDiv, kernelFnObj, getPtrNative(bufAccResult), std::forward<TArgs>(args)...);
 
             // Copy the result value to the host
             auto bufHostResult = allocBuf<bool, Idx>(m_devHost, static_cast<Idx>(1u));
