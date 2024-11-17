@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include "alpaka/core/BarrierTbb.h"
 #include "alpaka/core/Common.hpp"
 #include "alpaka/grid/Traits.hpp"
 
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
-#    include "alpaka/core/BarrierTbb.h"
 
 namespace alpaka
 {
@@ -19,11 +19,13 @@ namespace alpaka
     public:
         using Barrier = core::tbb::BarrierThread<TIdx>;
 
-        ALPAKA_FN_HOST explicit GridSyncBarrierTbb(TIdx const& gridThreadCount) : m_barrier(gridThreadCount)
+        // Get reference to the barrier from the outside because we need it to be shared between blocks
+        ALPAKA_FN_HOST explicit GridSyncBarrierTbb(Barrier& barrier)
         {
+            m_barrier = &barrier;
         }
 
-        Barrier mutable m_barrier;
+        Barrier* m_barrier;
     };
 
     namespace trait
@@ -33,7 +35,7 @@ namespace alpaka
         {
             ALPAKA_FN_HOST static auto syncGridThreads(GridSyncBarrierTbb<TIdx> const& gridSync) -> void
             {
-                gridSync.m_barrier.wait();
+                gridSync.m_barrier->wait();
             }
         };
 

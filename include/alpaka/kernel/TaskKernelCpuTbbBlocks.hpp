@@ -86,15 +86,20 @@ namespace alpaka
             tbb::this_task_arena::isolate(
                 [&]
                 {
-                    AccCpuTbbBlocks<TDim, TIdx> acc(
-                        *static_cast<WorkDivMembers<TDim, TIdx> const*>(this),
-                        blockSharedMemDynSizeBytes);
+                    // Create a shared barrier for grid sync, which will be passed by reference to each thread to
+                    // achieve shared state
+                    core::tbb::BarrierThread<TIdx> barrier(numBlocksInGrid);
 
                     tbb::parallel_for(
                         static_cast<TIdx>(0),
                         static_cast<TIdx>(numBlocksInGrid),
                         [&](TIdx i)
                         {
+                            AccCpuTbbBlocks<TDim, TIdx> acc(
+                                *static_cast<WorkDivMembers<TDim, TIdx> const*>(this),
+                                blockSharedMemDynSizeBytes,
+                                barrier);
+
                             acc.m_gridBlockIdx
                                 = mapIdx<TDim::value>(Vec<DimInt<1u>, TIdx>(static_cast<TIdx>(i)), gridBlockExtent);
 

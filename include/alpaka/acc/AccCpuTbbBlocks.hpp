@@ -33,6 +33,7 @@
 
 // Implementation details.
 #include "alpaka/acc/Tag.hpp"
+#include "alpaka/core/BarrierTbb.h"
 #include "alpaka/core/ClipCast.hpp"
 #include "alpaka/core/Interface.hpp"
 #include "alpaka/dev/DevCpu.hpp"
@@ -90,13 +91,16 @@ namespace alpaka
 
     private:
         template<typename TWorkDiv>
-        ALPAKA_FN_HOST AccCpuTbbBlocks(TWorkDiv const& workDiv, std::size_t const& blockSharedMemDynSizeBytes)
+        ALPAKA_FN_HOST AccCpuTbbBlocks(
+            TWorkDiv const& workDiv,
+            std::size_t const& blockSharedMemDynSizeBytes,
+            core::tbb::BarrierThread<TIdx>& barrier)
             : WorkDivMembers<TDim, TIdx>(workDiv)
             , gb::IdxGbRef<TDim, TIdx>(m_gridBlockIdx)
             , BlockSharedMemDynMember<>(blockSharedMemDynSizeBytes)
             , BlockSharedMemStMember<>(staticMemBegin(), staticMemCapacity())
+            , GridSyncBarrierTbb<TIdx>(barrier)
             , m_gridBlockIdx(Vec<TDim, TIdx>::zeros())
-            , GridSyncBarrierTbb<TIdx>(getWorkDiv<Grid, Threads>(workDiv).prod())
         {
         }
 
