@@ -14,12 +14,12 @@
 //! Prints an error if sum is incorrect.
 struct HelloWorldKernel
 {
-    template<typename Acc, typename Idx>
-    ALPAKA_FN_ACC void operator()(Acc const& acc, Idx* array, bool* success) const
+    template<typename Acc>
+    ALPAKA_FN_ACC void operator()(Acc const& acc, size_t* array, bool* success) const
     {
         // Get index of the current thread in the grid and the total number of threads.
-        Idx gridThreadIdx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
-        Idx gridThreadExtent = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0];
+        size_t gridThreadIdx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
+        size_t gridThreadExtent = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0];
 
         if(gridThreadIdx == 0)
             printf("Hello, World from alpaka thread %u!\n", gridThreadIdx);
@@ -31,13 +31,13 @@ struct HelloWorldKernel
         alpaka::syncGridThreads(acc);
 
         // Get the index of the thread from the opposite side of 1D array.
-        Idx gridThreadIdxOpposite = array[gridThreadExtent - gridThreadIdx - 1];
+        size_t gridThreadIdxOpposite = array[gridThreadExtent - gridThreadIdx - 1];
 
         // Sum them.
-        Idx sum = gridThreadIdx + gridThreadIdxOpposite;
+        size_t sum = gridThreadIdx + gridThreadIdxOpposite;
 
         // Get the expected sum.
-        Idx expectedSum = gridThreadExtent - 1;
+        size_t expectedSum = gridThreadExtent - 1;
 
         // Print the result and signify an error if the grid synchronization fails.
         if(sum != expectedSum)
