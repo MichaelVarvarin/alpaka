@@ -14,12 +14,12 @@
 //! Prints an error if sum is incorrect.
 struct HelloWorldKernel
 {
-    template<typename Acc>
-    ALPAKA_FN_ACC void operator()(Acc const& acc, uint32_t* data) const
+    template<typename Acc, typename Idx>
+    ALPAKA_FN_ACC void operator()(Acc const& acc, Idx* data) const
     {
         // Get index of the current thread in the grid and the total number of threads.
-        uint32_t gridThreadIdx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
-        uint32_t gridThreadExtent = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0];
+        Idx gridThreadIdx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
+        Idx gridThreadExtent = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0];
 
         if(gridThreadIdx == 0)
             printf("Hello, World from alpaka thread %u!\n", gridThreadIdx);
@@ -30,20 +30,20 @@ struct HelloWorldKernel
         // Perform grid synchronization.
         alpaka::syncGridThreads(acc);
 
-        // Get the index of the opposite thread.
-        uint32_t gridThreadIdxOpposite = data[gridThreadExtent - gridThreadIdx - 1];
+        // Get the index of the thread from the opposite side of 1D array.
+        Idx gridThreadIdxOpposite = data[gridThreadExtent - gridThreadIdx - 1];
 
         // Sum them.
-        uint32_t sum = gridThreadIdx + gridThreadIdxOpposite;
+        Idx sum = gridThreadIdx + gridThreadIdxOpposite;
 
         // Get the expected sum.
-        uint32_t expectedSum = gridThreadExtent - 1;
+        Idx expectedSum = gridThreadExtent - 1;
 
         // Print the result and signify an error if the grid synchronization fails.
         if(sum != expectedSum)
             printf(
-                "After grid sync, this thread is %u, thread on the opposite side is %u. Their sum is %u, expected: "
-                "%u.%s",
+                "After grid sync, this thread is %lu, thread on the opposite side is %lu. Their sum is %lu, expected: "
+                "%lu.%s",
                 gridThreadIdx,
                 gridThreadIdxOpposite,
                 sum,
@@ -80,7 +80,7 @@ auto example(TAccTag const&) -> int
 
     // Define kernel execution configuration of blocks,
     // threads per block, and elements per thread.
-    Idx blocksPerGrid = 1000;
+    Idx blocksPerGrid = 100;
     Idx threadsPerBlock = 1;
     Idx elementsPerThread = 1;
 
@@ -88,7 +88,7 @@ auto example(TAccTag const&) -> int
 
     // Allocate memory on the device.
     alpaka::Vec<Dim, Idx> bufferExtent{blocksPerGrid * threadsPerBlock};
-    auto deviceMemory = alpaka::allocBuf<uint32_t, Idx>(devAcc, bufferExtent);
+    auto deviceMemory = alpaka::allocBuf<Idx, Idx>(devAcc, bufferExtent);
 
 
     // Instantiate the kernel object.
@@ -105,15 +105,13 @@ auto example(TAccTag const&) -> int
 
     // Create a workdiv according to the limitations
     blocksPerGrid = std::min(static_cast<Idx>(maxBlocks), blocksPerGrid);
-    auto workDiv2 = WorkDiv{blocksPerGrid, threadsPerBlock, elementsPerThread};
-    alpaka::Vec<Dim, Idx> bufferExtent2{blocksPerGrid * threadsPerBlock};
-    auto deviceMemory2 = alpaka::allocBuf<uint32_t, Idx>(devAcc, bufferExtent2);
+    auto workDiv = WorkDiv{blocksPerGrid, threadsPerBlock, elementsPerThread};
 
     // Create a task to run the kernel.
     // Note the cooperative kernel specification.
     // Only cooperative kernels can perform grid synchronization.
     auto taskRunKernel
-        = alpaka::createTaskCooperativeKernel<Acc>(workDiv2, helloWorldKernel, getPtrNative(deviceMemory2));
+        = alpaka::createTaskCooperativeKernel<Acc>(workDiv, helloWorldKernel, getPtrNative(deviceMemory));
 
     // Enqueue the kernel execution task..
     alpaka::enqueue(queue, taskRunKernel);
