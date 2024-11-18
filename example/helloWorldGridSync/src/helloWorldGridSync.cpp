@@ -15,7 +15,7 @@
 struct HelloWorldKernel
 {
     template<typename Acc, typename Idx>
-    ALPAKA_FN_ACC void operator()(Acc const& acc, Idx* data) const
+    ALPAKA_FN_ACC void operator()(Acc const& acc, Idx* array, bool* success) const
     {
         // Get index of the current thread in the grid and the total number of threads.
         Idx gridThreadIdx = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
@@ -25,13 +25,13 @@ struct HelloWorldKernel
             printf("Hello, World from alpaka thread %u!\n", gridThreadIdx);
 
         // Write the index of the thread to array.
-        data[gridThreadIdx] = gridThreadIdx;
+        array[gridThreadIdx] = gridThreadIdx;
 
         // Perform grid synchronization.
         alpaka::syncGridThreads(acc);
 
         // Get the index of the thread from the opposite side of 1D array.
-        Idx gridThreadIdxOpposite = data[gridThreadExtent - gridThreadIdx - 1];
+        Idx gridThreadIdxOpposite = array[gridThreadExtent - gridThreadIdx - 1];
 
         // Sum them.
         Idx sum = gridThreadIdx + gridThreadIdxOpposite;
@@ -41,6 +41,8 @@ struct HelloWorldKernel
 
         // Print the result and signify an error if the grid synchronization fails.
         if(sum != expectedSum)
+        {
+            *success = false;
             printf(
                 "After grid sync, this thread is %lu, thread on the opposite side is %lu. Their sum is %lu, expected: "
                 "%lu.%s",
@@ -49,6 +51,7 @@ struct HelloWorldKernel
                 sum,
                 expectedSum,
                 sum == expectedSum ? "\n" : " ERROR: the sum is incorrect.\n");
+        }
     }
 };
 
@@ -73,6 +76,10 @@ auto example(TAccTag const&) -> int
     auto const platformAcc = alpaka::Platform<Acc>{};
     auto const devAcc = getDevByIdx(platformAcc, 0u);
 
+    // Select CPU host
+    constexpr auto platformHost = alpaka::Platform<alpaka::DevCpu>{};
+    auto const devHost = getDevByIdx(platformHost, 0u);
+
     // Define type for a queue with requested properties: Blocking.
     using Queue = alpaka::Queue<Acc, alpaka::Blocking>;
     // Create a queue for the device.
@@ -90,6 +97,10 @@ auto example(TAccTag const&) -> int
     alpaka::Vec<Dim, Idx> bufferExtent{blocksPerGrid * threadsPerBlock};
     auto deviceMemory = alpaka::allocBuf<Idx, Idx>(devAcc, bufferExtent);
 
+    // Allocate the result value
+    auto bufAccResult = alpaka::allocBuf<bool, Idx>(devAcc, static_cast<Idx>(1u));
+    memset(queue, bufAccResult, static_cast<std::uint8_t>(true));
+
 
     // Instantiate the kernel object.
     HelloWorldKernel helloWorldKernel;
@@ -100,7 +111,8 @@ auto example(TAccTag const&) -> int
         helloWorldKernel,
         threadsPerBlock,
         elementsPerThread,
-        getPtrNative(deviceMemory));
+        getPtrNative(deviceMemory),
+        getPtrNative(bufAccResult));
     std::cout << "Maximum blocks for the kernel: " << maxBlocks << std::endl;
 
     // Create a workdiv according to the limitations
@@ -110,13 +122,30 @@ auto example(TAccTag const&) -> int
     // Create a task to run the kernel.
     // Note the cooperative kernel specification.
     // Only cooperative kernels can perform grid synchronization.
-    auto taskRunKernel
-        = alpaka::createTaskCooperativeKernel<Acc>(workDiv, helloWorldKernel, getPtrNative(deviceMemory));
+    auto taskRunKernel = alpaka::createTaskCooperativeKernel<Acc>(
+        workDiv,
+        helloWorldKernel,
+        getPtrNative(deviceMemory),
+        getPtrNative(bufAccResult));
 
-    // Enqueue the kernel execution task..
+    // Enqueue the kernel execution task.
     alpaka::enqueue(queue, taskRunKernel);
 
-    return EXIT_SUCCESS;
+    // Copy the result value to the host
+    auto bufHostResult = alpaka::allocBuf<bool, Idx>(devHost, static_cast<Idx>(1u));
+    memcpy(queue, bufHostResult, bufAccResult);
+    wait(queue);
+
+    auto const result = *getPtrNative(bufHostResult);
+
+    if(result)
+    {
+        return EXIT_SUCCESS;
+    }
+    else
+    {
+        return EXIT_FAILURE;
+    }
 }
 
 auto main() -> int
