@@ -488,7 +488,7 @@ namespace alpaka
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(TApi::occupancyMaxActiveBlocksPerMultiprocessor(
                     &numBlocksPerSm,
                     alpaka::detail::
-                        gpuKernel<TKernelFnObj, TApi, TAcc, TDim, TIdx, remove_restrict_t<std::decay_t<TArgs>>...>,
+                        gpuKernel<TKernelFnObj, TApi, TAcc, TDim, TIdx, remove_restrict_t<std::decay_t<TArgs...>>>,
                     blockThreadExtent.prod(),
                     static_cast<std::size_t>(blockSharedMemDynSizeBytes)));
 
