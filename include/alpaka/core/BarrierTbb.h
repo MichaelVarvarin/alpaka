@@ -9,16 +9,17 @@
 
 #ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED
 
-#include "alpaka/grid/Traits.hpp"
-#include "alpaka/core/Common.hpp"
+#    include "alpaka/core/Common.hpp"
+#    include "alpaka/grid/Traits.hpp"
 
-#ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
-#   include <condition_variable>
-#   include <mutex>
-#else
-#   include <oneapi/tbb/task.h>
-#   include <atomic>
-#endif
+#    ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
+#        include <condition_variable>
+#        include <mutex>
+#    else
+#        include <oneapi/tbb/task.h>
+
+#        include <atomic>
+#    endif
 
 namespace alpaka::core
 {
@@ -40,51 +41,52 @@ namespace alpaka::core
             auto wait() -> void
             {
                 TIdx const generationWhenEnteredTheWait = m_generation;
-#ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
+#    ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
                 std::unique_lock<std::mutex> lock(m_mtxBarrier);
-#endif
+#    endif
                 if(--m_curThreadCount == 0)
                 {
                     m_curThreadCount = m_threadCount;
                     ++m_generation;
-#ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
+#    ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
                     m_cvAllThreadsReachedBarrier.notify_all();
-#endif
+#    endif
                 }
                 else
                 {
-#ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
+#    ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
                     m_cvAllThreadsReachedBarrier.wait(
                         lock,
                         [this, generationWhenEnteredTheWait] { return generationWhenEnteredTheWait != m_generation; });
-#else
-                    oneapi::tbb::task::suspend([&generationWhenEnteredTheWait, this] (oneapi::tbb::task::suspend_point tag)
-                    {
-                        while(generationWhenEnteredTheWait == this->m_generation)
+#    else
+                    oneapi::tbb::task::suspend(
+                        [&generationWhenEnteredTheWait, this](oneapi::tbb::task::suspend_point tag)
                         {
-                            //sleep for 100 microseconds
-                            usleep(100);
-                        }
-                        oneapi::tbb::task::resume(tag);
-                    });
-#endif
+                            while(generationWhenEnteredTheWait == this->m_generation)
+                            {
+                                // sleep for 100 microseconds
+                                usleep(100);
+                            }
+                            oneapi::tbb::task::resume(tag);
+                        });
+#    endif
                 }
             }
 
         private:
-#ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
+#    ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
             std::mutex m_mtxBarrier;
             std::condition_variable m_cvAllThreadsReachedBarrier;
-#endif
-            const TIdx m_threadCount;
-#ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
+#    endif
+            TIdx const m_threadCount;
+#    ifdef ALPAKA_TBB_BARRIER_USE_MUTEX
             TIdx m_curThreadCount;
             TIdx m_generation;
-#else
+#    else
             std::atomic<TIdx> m_curThreadCount;
             std::atomic<TIdx> m_generation;
             oneapi::tbb::task::suspend_point m_tag;
-#endif
+#    endif
         };
     } // namespace tbb
 } // namespace alpaka::core
