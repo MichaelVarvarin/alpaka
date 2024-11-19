@@ -489,12 +489,12 @@ namespace alpaka
                     &numBlocksPerSm,
                     alpaka::detail::
                         gpuKernel<TKernelFnObj, TApi, TAcc, TDim, TIdx, remove_restrict_t<std::decay_t<TArgs>>...>,
-                    blockThreadExtent.prod(),
+                    static_cast<int>(blockThreadExtent.prod()),
                     static_cast<std::size_t>(blockSharedMemDynSizeBytes)));
 
                 auto multiProcessorCount = trait::GetAccDevProps<TAcc>::getAccDevProps(device).m_multiProcessorCount;
 
-                return numBlocksPerSm * multiProcessorCount;
+                return numBlocksPerSm * static_cast<int>(multiProcessorCount);
             }
         };
     } // namespace trait
