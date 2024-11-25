@@ -42,7 +42,7 @@
 #    define LAUNCH_SYCL_KERNEL_IF_SUBGROUP_SIZE_IS(sub_group_size)                                                    \
         if constexpr(TCooperative)                                                                                    \
         {                                                                                                             \
-            cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                 \
+            cgh.parallel_for<detail::SyclKernel<TKernelFnObj, TDim, TIdx, TArgs...>>(                                 \
                 sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
                 [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
                     sycl::nd_item<TDim::value> work_item) [[intel::reqd_sub_group_size(sub_group_size)]]              \
@@ -70,7 +70,7 @@
 #    define LAUNCH_SYCL_KERNEL_WITH_DEFAULT_SUBGROUP_SIZE                                                             \
         if constexpr(TCooperative)                                                                                    \
         {                                                                                                             \
-            cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                 \
+            cgh.parallel_for<detail::SyclKernel<TKernelFnObj, TDim, TIdx, TArgs...>>(                                 \
                 sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
                 [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
                     sycl::nd_item<TDim::value> work_item)                                                             \
@@ -100,7 +100,7 @@
         throw sycl::exception(sycl::make_error_code(sycl::errc::kernel_not_supported));                               \
         if constexpr(TCooperative)                                                                                    \
         {                                                                                                             \
-            cgh.parallel_for<class detail::SyclKernel<TKernelFnObj>>(                                                 \
+            cgh.parallel_for<detail::SyclKernel<TKernelFnObj, TDim, TIdx, TArgs...>>(                                 \
                 sycl::nd_range<TDim::value>{global_size, local_size},                                                 \
                 [item_elements, dyn_shared_accessor, st_shared_accessor, k_func, k_args](                             \
                     sycl::nd_item<TDim::value> work_item) {});                                                        \
@@ -117,8 +117,8 @@ namespace alpaka
 {
     namespace detail
     {
-        // dummy class to pass as a template parameter when launching cooperative kernels
-        template<typename TKernel>
+        // A dummy class to pass as a template parameter when launching cooperative kernels
+        template<typename TKernel, typename TDim, typename TIdx, typename... TArgs>
         class SyclKernel;
     } // namespace detail
 
@@ -197,7 +197,6 @@ namespace alpaka
 #        endif
             }
 #    endif
-
 
             if constexpr(sub_group_size == 0)
             {
@@ -409,7 +408,7 @@ namespace alpaka::trait
                 {sycl::property::queue::enable_profiling{}, sycl::property::queue::in_order{}}};
 
             sycl::kernel_bundle bundle = sycl::get_kernel_bundle<sycl::bundle_state::executable>(queue.get_context());
-            sycl::kernel kernel = bundle.get_kernel<class detail::SyclKernel<TKernelFnObj>>();
+            sycl::kernel kernel = bundle.get_kernel<detail::SyclKernel<TKernelFnObj, TDim, TIdx, TArgs...>>();
             size_t maxWGs = kernel.ext_oneapi_get_info<
                 sycl::ext::oneapi::experimental::info::kernel_queue_specific::max_num_work_group_sync>(queue);
             return static_cast<int>(maxWGs);
