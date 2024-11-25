@@ -70,11 +70,15 @@ TEMPLATE_LIST_TEST_CASE("synchronize", "[gridSync]", alpaka::test::TestAccs)
     auto deviceMemory = alpaka::allocBuf<Idx, Idx>(devAcc, bufferExtent);
 
     GridSyncTestKernel kernel;
+
+    bool success = false;
+
     int maxBlocks = alpaka::getMaxActiveBlocks<Acc>(
         devAcc,
         kernel,
         threadsPerBlock,
         elementsPerThread,
+        &success,
         alpaka::getPtrNative(deviceMemory));
 
     blocksPerGrid[0] = std::min(static_cast<Idx>(maxBlocks), blocksPerGrid[0]);
