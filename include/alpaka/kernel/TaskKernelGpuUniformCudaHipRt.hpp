@@ -366,6 +366,12 @@ namespace alpaka
                         {
                             void const* kernelArgs[] = {&threadElemExtent, &task.m_kernelFnObj, &args...};
 
+                        // Suppress warning about pointer-to-object and pointer-to-function
+#        if BOOST_COMP_GNUC
+#            pragma GCC diagnostic push
+#            pragma GCC diagnostic ignored "-Wconditionally-supported"
+#        endif
+
                             ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(TApi::launchCooperativeKernel(
                                 reinterpret_cast<void*>(kernelName),
                                 gridDim,
@@ -373,6 +379,9 @@ namespace alpaka
                                 const_cast<void**>(kernelArgs),
                                 static_cast<std::size_t>(blockSharedMemDynSizeBytes),
                                 queue.getNativeHandle()));
+#        if BOOST_COMP_GNUC
+#            pragma GCC diagnostic pop
+#        endif
                         }
                         else
                         {
