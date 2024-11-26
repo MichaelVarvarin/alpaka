@@ -54,37 +54,40 @@ TEMPLATE_LIST_TEST_CASE("synchronize", "[gridSync]", alpaka::test::TestAccs)
     auto const platformAcc = alpaka::Platform<Acc>{};
     auto const devAcc = getDevByIdx(platformAcc, 0u);
 
+    // Check if accelerator supports cooperative launch, don't do anything if it doesn't
+    if(alpaka::trait::GetAccDevProps<Acc>::getAccDevProps(devAcc).m_cooperativeLaunch)
+    {
+        auto const blockThreadExtentMax = alpaka::getAccDevProps<Acc>(devAcc).m_blockThreadExtentMax;
+        auto threadsPerBlock = alpaka::elementwise_min(
+            blockThreadExtentMax,
+            alpaka::Vec<Dim, Idx>::all(static_cast<Idx>(GridSyncTestKernel::blockThreadExtentPerDim())));
 
-    auto const blockThreadExtentMax = alpaka::getAccDevProps<Acc>(devAcc).m_blockThreadExtentMax;
-    auto threadsPerBlock = alpaka::elementwise_min(
-        blockThreadExtentMax,
-        alpaka::Vec<Dim, Idx>::all(static_cast<Idx>(GridSyncTestKernel::blockThreadExtentPerDim())));
+        auto elementsPerThread = alpaka::Vec<Dim, Idx>::all(1);
+        auto blocksPerGrid = alpaka::Vec<Dim, Idx>::all(1);
+        blocksPerGrid[0] = 200;
 
-    auto elementsPerThread = alpaka::Vec<Dim, Idx>::all(1);
-    auto blocksPerGrid = alpaka::Vec<Dim, Idx>::all(1);
-    blocksPerGrid[0] = 200;
+        // Allocate memory on the device.
+        alpaka::Vec<alpaka::DimInt<1>, Idx> bufferExtent{
+            blocksPerGrid.prod() * threadsPerBlock.prod() * elementsPerThread.prod()};
+        auto deviceMemory = alpaka::allocBuf<Idx, Idx>(devAcc, bufferExtent);
 
-    // Allocate memory on the device.
-    alpaka::Vec<alpaka::DimInt<1>, Idx> bufferExtent{
-        blocksPerGrid.prod() * threadsPerBlock.prod() * elementsPerThread.prod()};
-    auto deviceMemory = alpaka::allocBuf<Idx, Idx>(devAcc, bufferExtent);
+        GridSyncTestKernel kernel;
 
-    GridSyncTestKernel kernel;
+        bool success = false;
 
-    bool success = false;
+        int maxBlocks = alpaka::getMaxActiveBlocks<Acc>(
+            devAcc,
+            kernel,
+            threadsPerBlock,
+            elementsPerThread,
+            &success,
+            alpaka::getPtrNative(deviceMemory));
 
-    int maxBlocks = alpaka::getMaxActiveBlocks<Acc>(
-        devAcc,
-        kernel,
-        threadsPerBlock,
-        elementsPerThread,
-        &success,
-        alpaka::getPtrNative(deviceMemory));
+        blocksPerGrid[0] = std::min(static_cast<Idx>(maxBlocks), blocksPerGrid[0]);
+        constexpr bool IsCooperative = true;
+        alpaka::test::KernelExecutionFixture<Acc, IsCooperative> fixture(
+            alpaka::WorkDivMembers<Dim, Idx>{blocksPerGrid, threadsPerBlock, elementsPerThread});
 
-    blocksPerGrid[0] = std::min(static_cast<Idx>(maxBlocks), blocksPerGrid[0]);
-    constexpr bool IsCooperative = true;
-    alpaka::test::KernelExecutionFixture<Acc, IsCooperative> fixture(
-        alpaka::WorkDivMembers<Dim, Idx>{blocksPerGrid, threadsPerBlock, elementsPerThread});
-
-    REQUIRE(fixture(kernel, alpaka::getPtrNative(deviceMemory)));
+        REQUIRE(fixture(kernel, alpaka::getPtrNative(deviceMemory)));
+    }
 }
