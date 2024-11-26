@@ -22,7 +22,7 @@ struct HelloWorldKernel
         size_t gridThreadExtent = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc)[0];
 
         if(gridThreadIdx == 0)
-            printf("Hello, World from alpaka thread %u!\n", gridThreadIdx);
+            printf("Hello, World from alpaka thread %zu!\n", gridThreadIdx);
 
         // Write the index of the thread to array.
         array[gridThreadIdx] = gridThreadIdx;
@@ -44,8 +44,8 @@ struct HelloWorldKernel
         {
             *success = false;
             printf(
-                "After grid sync, this thread is %lu, thread on the opposite side is %lu. Their sum is %lu, expected: "
-                "%lu.%s",
+                "After grid sync, this thread is %zu, thread on the opposite side is %zu. Their sum is %zu, expected: "
+                "%zu.%s",
                 gridThreadIdx,
                 gridThreadIdxOpposite,
                 sum,
